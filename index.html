@@ -170,9 +170,13 @@ document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='n')S
 document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 
 // stick/joy
-document.addEventListener('pointermove',e=>{if(e.target!==cv)return;const r=cv.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,d=Math.hypot(dx,dy),maxD=Math.min(r.width,r.height)*0.25;
- if(d>1){const n=Math.min(d,maxD);joy={x:dx/d*n/maxD,y:dy/d*n/maxD};}});
-document.addEventListener('pointerup',()=>{joy={x:0,y:0};});
+const stick=$('stick'),knob=$('knob');let stickId=null;
+function stickAt(e){const r=stick.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),max=r.width/2-23,d=Math.hypot(dx,dy)||1,n=Math.min(d,max);
+ joy={x:dx/d*n/max,y:dy/d*n/max};knob.style.transform=`translate(${dx/d*n}px,${dy/d*n}px)`;}
+function stickEnd(e){if(e.pointerId!==stickId)return;stickId=null;joy={x:0,y:0};knob.style.transform='';}
+stick.addEventListener('pointerdown',e=>{e.preventDefault();stickId=e.pointerId;stick.setPointerCapture(stickId);stickAt(e);});
+stick.addEventListener('pointermove',e=>{if(e.pointerId===stickId)stickAt(e);});
+stick.addEventListener('pointerup',stickEnd);stick.addEventListener('pointercancel',stickEnd);
 
 // ---------- helpers ----------
 function collide(e){e.x=Math.max(e.r,Math.min(W-e.r,e.x));e.y=Math.max(e.r,Math.min(H-e.r,e.y));
@@ -249,7 +253,7 @@ function update(dt){
  for(const z of zones){z.t-=dt;if(z.t<=0){const t=foe(z.own);Snd.boom();fx.push({k:'ring',x:z.x,y:z.y,r:8,grow:z.s.rad*3,t:.35,c:z.s.c});
   if(Math.hypot(t.x-z.x,t.y-z.y)<z.s.rad+t.r)hit(t,z.s,z.s.dmg,Math.atan2(t.y-z.y,t.x-z.x));}}
  zones=zones.filter(z=>z.t>0);
- fx.forEach(f=>f.t-=dt);fx=fx.filter(f=>f.t>0);
+ fx.forEach(f=>{f.t-=dt;if(f.grow)f.r+=f.grow*dt;});fx=fx.filter(f=>f.t>0);
  if(logT>0)logT-=dt;
  if(P.hp<=0||E.hp<=0)end(P.hp>0);}
 
@@ -261,11 +265,12 @@ function end(won){state='over';Snd.stop(P.chg);Snd.stop(E.chg);won?Snd.win():Snd
 function label(txt,x,y,c,a){ctx.globalAlpha=a;ctx.font='800 9px Nunito, sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#2C2C2A';ctx.strokeText(txt,x,y);ctx.fillStyle=c;ctx.fillText(txt,x,y);ctx.globalAlpha=1;}
 function draw(){ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#2C2C2A';ctx.fillRect(0,0,cv.width,cv.height);
  ctx.setTransform(scale,0,0,scale,ox,oy);ctx.fillStyle='#444441';ctx.fillRect(0,0,W,H);ctx.strokeStyle='#1a1a18';ctx.lineWidth=2;ctx.strokeRect(0,0,W,H);
- for(const p of pillars){ctx.fillStyle='#666661';ctx.fillRect(p.x-p.r,p.y-p.r,p.r*2,p.r*2);}
+ for(const p of pillars){ctx.fillStyle='#666661';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}
+ if(!P)return;
  for(const b of bolts){ctx.fillStyle=b.s.c;ctx.globalAlpha=b.life/2.5;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();}
  for(const z of zones){ctx.strokeStyle=z.s.c;ctx.globalAlpha=0.4;ctx.lineWidth=2;ctx.beginPath();ctx.arc(z.x,z.y,z.s.rad,0,Math.PI*2);ctx.stroke();}
- for(const f of fx){ctx.globalAlpha=f.t>0?f.t/(f.t+.2):0;
-  if(f.k==='ring'){ctx.strokeStyle=f.c;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(f.x,f.y,f.r+f.grow*(1-f.t/(.3)),0,Math.PI*2);ctx.stroke();}
+ for(const f of fx){ctx.globalAlpha=Math.max(0,Math.min(1,f.t*5));
+  if(f.k==='ring'){ctx.strokeStyle=f.c;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(f.x,f.y,Math.max(0,f.r),0,Math.PI*2);ctx.stroke();}
   else if(f.k==='line'){ctx.strokeStyle=f.c;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(f.x2,f.y2);ctx.stroke();}}
  ctx.globalAlpha=1;
  for(const e of[P,E]){ctx.fillStyle=e===P?'#639922':'#D85A30';ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();
@@ -287,6 +292,7 @@ function loop(t){
  if(!last)last=t;const dt=Math.min(.03,(t-last)/1000);last=t;
  if(freeze<=0){if(state==='play')update(dt);}else freeze-=dt;
  draw();requestAnimationFrame(loop);}
-fit();draw();requestAnimationFrame(loop);</script>
+fit();draw();requestAnimationFrame(loop);
+})();</script>
 </body>
 </html>
