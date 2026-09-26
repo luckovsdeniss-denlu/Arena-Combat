@@ -154,8 +154,8 @@ function buildButtons(){spellBox.innerHTML='';spellBtns=load.map((id,i)=>{const 
  b.innerHTML=`<span class="k">${i+1}</span>${s.n}<small>${s.mana} mana</small><span class="ov"></span>`;
  b.addEventListener('pointerdown',e=>{e.preventDefault();tryCast(P,id);});spellBox.appendChild(b);return b;});}
 
-go.onclick=()=>{P=mk(50,160,load.slice());E=mk(270,160,aiLoadout());bolts=[];zones=[];fx=[];buildButtons();
- Snd.unlock();Snd.start();$('menu').style.display='none';say('Rival brings '+E.spells.map(i=>SP[i].n).join(', '));state='play';fit();};
+go.addEventListener('click',()=>{P=mk(50,160,load.slice());E=mk(270,160,aiLoadout());bolts=[];zones=[];fx=[];buildButtons();
+ Snd.unlock();Snd.start();$('menu').style.display='none';say('Rival brings '+E.spells.map(i=>SP[i].n).join(', '));state='play';fit();});
 
 function say(t){$('log').textContent=t;logT=2.2;}
 
